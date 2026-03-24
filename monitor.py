@@ -104,6 +104,18 @@ def parse_ticket_areas(html: str) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     areas = []
 
+    # 先檢查是否被擋（驗證頁、CAPTCHA、403 等）
+    page_text = soup.get_text()
+    block_signals = [
+        "Identity Verified", "not a bot", "are you human",
+        "captcha", "CAPTCHA", "Access Denied", "403 Forbidden",
+        "Please verify", "security check",
+    ]
+    for signal in block_signals:
+        if signal in page_text:
+            areas.append({"name": "⚠️ 被擋", "status": "驗證頁面/機器人偵測"})
+            return areas
+
     # 方法1: 表格或列表
     area_list = soup.select("table.table tbody tr, .area-list li, .zone-list li")
     if area_list:
@@ -166,7 +178,7 @@ def check_once(context: BrowserContext, config: dict) -> tuple[bool, str]:
     if not areas:
         return False, "無法解析頁面內容"
 
-    no_ticket_keywords = ["無票", "已售完", "sold out", "暫無", "目前無可售"]
+    no_ticket_keywords = ["無票", "已售完", "sold out", "暫無", "目前無可售", "被擋", "驗證頁面"]
     available = []
     for area in areas:
         status_lower = area["status"].lower()
@@ -197,7 +209,13 @@ def run_ci_check():
     log.info("CI 單次檢查: %s", config["target_url"])
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+        browser = pw.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+            ],
+        )
         context = browser.new_context(
             locale="zh-TW",
             user_agent=(
@@ -207,6 +225,10 @@ def run_ci_check():
             ),
             viewport={"width": 1280, "height": 800},
         )
+        # 隱藏 webdriver 特徵
+        context.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+        """)
 
         has_ticket, msg = check_once(context, config)
 
