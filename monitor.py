@@ -50,10 +50,36 @@ def load_config():
             "target_url": os.environ.get("TARGET_URL", ""),
             "google_chat_webhook": os.environ["GOOGLE_CHAT_WEBHOOK"],
             "check_interval_seconds": 30,
+            "targets": [
+                {
+                    "url": os.environ["TARGET_URL"],
+                    "name": "CI Target",
+                    "enabled": True,
+                }
+            ],
         }
     # 本機模式：讀 config.json
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+        config = json.load(f)
+
+    # 向下相容：舊格式 target_url -> 新格式 targets
+    if "target_url" in config and "targets" not in config:
+        config["targets"] = [
+            {
+                "url": config.pop("target_url"),
+                "name": "預設目標",
+                "enabled": True,
+            }
+        ]
+        save_config(config)
+
+    return config
+
+
+def save_config(config: dict) -> None:
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+        f.write("\n")
 
 
 # ── Google Sheet 讀取 ─────────────────────────────────
@@ -227,11 +253,11 @@ def check_single_url(context, url):
     """檢查單一網址，回傳 (has_ticket, message)"""
     html = fetch_page_with_playwright(context, url)
     if html is None:
-        return False, "無法取得頁面"
+        return False, f"[{name}] 無法取得頁面"
 
     areas = parse_ticket_areas(html)
     if not areas:
-        return False, "無法解析頁面內容"
+        return False, f"[{name}] 無法解析頁面內容"
 
     no_ticket_keywords = ["無票", "已售完", "sold out", "暫無", "目前無可售", "被擋", "驗證頁面"]
     available = []
@@ -361,6 +387,7 @@ def run_local():
                 # 每次迴圈重讀設定 + Google Sheet，這樣改 Sheet 不用重啟
                 config = load_config()
                 webhook = config["google_chat_webhook"]
+                targets = [t for t in config.get("targets", []) if t.get("enabled", True)]
 
                 any_ticket, ticket_msgs, no_ticket_msgs = check_all_urls(context, config)
 

@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .DS_Store
 config.json
+config.json.save
+monitor.log
+monitor.err
