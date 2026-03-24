@@ -229,11 +229,7 @@
 
   <script>
     const SHEET_ID = '1HZbVzAxvqAGuN9pGMd2kvBsD6EJ0UXiq8fwAD03gNDA';
-    const SCRIPT_KEY = 'tik_script_url';
-
-    function getScriptUrl() {
-      return localStorage.getItem(SCRIPT_KEY) || '';
-    }
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyD0MIU-Y1hS2ahH2gutvSD9Fq6kHc5rNeMw-njYR_D6CeNIvGOtnDE5ToBeD-ppEk5xA/exec';
 
     async function fetchSheet() {
       const list = document.getElementById('list');
@@ -273,8 +269,6 @@
       const list = document.getElementById('list');
       const badge = document.getElementById('count-badge');
       const activeCount = rows.filter(r => r.enabled).length;
-      const hasScript = !!getScriptUrl();
-
       badge.textContent = activeCount + ' / ' + rows.length + ' 個啟用';
       badge.className = activeCount > 0 ? 'badge active' : 'badge off';
 
@@ -296,7 +290,6 @@
     }
 
     async function addTarget() {
-      const scriptUrl = getScriptUrl();
       const urlInput = document.getElementById('inp-url');
       const url = urlInput.value.trim();
       if (!url) return;
@@ -305,16 +298,11 @@
         return;
       }
 
-      if (!scriptUrl) {
-        showToast('請先部署 Apps Script，詳見 GitHub README', 'error');
-        return;
-      }
-
       const btn = document.getElementById('btn-add');
       btn.disabled = true;
 
       try {
-        await fetch(scriptUrl, {
+        await fetch(SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain' },
@@ -330,15 +318,9 @@
     }
 
     async function delTarget(url, btnEl) {
-      const scriptUrl = getScriptUrl();
-      if (!scriptUrl) {
-        showToast('請先部署 Apps Script，詳見 GitHub README', 'error');
-        return;
-      }
-
       btnEl.disabled = true;
       try {
-        await fetch(scriptUrl, {
+        await fetch(SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain' },
