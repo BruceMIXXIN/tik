@@ -8,7 +8,7 @@ on:
     # 手動觸發，可以輸入自訂 URL
     inputs:
       target_url:
-        description: '拓元票券頁面 URL'
+        description: '拓元票券頁面 URL（留空則讀 Google Sheet）'
         required: false
 
 jobs:
@@ -30,5 +30,6 @@ jobs:
       - name: Run ticket check
         env:
           GOOGLE_CHAT_WEBHOOK: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           TARGET_URL: ${{ inputs.target_url || secrets.TARGET_URL }}
         run: python monitor.py check

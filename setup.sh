@@ -37,18 +37,36 @@ if [ ! -f "$CONFIG_FILE" ]; then
     echo ""
     read -p "🔗 請貼上 Google Chat Webhook URL: " WEBHOOK_URL
     echo ""
-    read -p "🎫 請貼上要監控的拓元網址: " TARGET_URL
+    echo "📊 網址來源（二擇一）:"
+    echo "   1) Google Sheet（推薦，可在 Sheet 上切換網址）"
+    echo "   2) 直接輸入單一網址"
+    read -p "請選擇 (1/2): " URL_MODE
+    echo ""
+
+    SHEET_ID=""
+    TARGET_URL=""
+    if [ "$URL_MODE" = "1" ]; then
+        read -p "📊 請貼上 Google Sheet 網址或 ID: " SHEET_INPUT
+        # 從完整網址中提取 Sheet ID
+        SHEET_ID=$(echo "$SHEET_INPUT" | sed -n 's|.*spreadsheets/d/\([^/]*\).*|\1|p')
+        if [ -z "$SHEET_ID" ]; then
+            SHEET_ID="$SHEET_INPUT"
+        fi
+        echo "   Sheet ID: $SHEET_ID"
+        echo "   ⚠️  請確認 Sheet 已設為「知道連結的人都能檢視」"
+    else
+        read -p "🎫 請貼上要監控的拓元網址: " TARGET_URL
+    fi
     echo ""
     read -p "⏱️  檢查間隔秒數 (預設 30): " INTERVAL
     INTERVAL=${INTERVAL:-30}
 
     cat > "$CONFIG_FILE" << JSONEOF
 {
+  "google_sheet_id": "$SHEET_ID",
   "target_url": "$TARGET_URL",
   "google_chat_webhook": "$WEBHOOK_URL",
-  "check_interval_seconds": $INTERVAL,
-  "notify_on_available": true,
-  "notify_keywords": []
+  "check_interval_seconds": $INTERVAL
 }
 JSONEOF
     echo "✅ config.json 已建立"
@@ -132,6 +150,7 @@ echo "📋 常用指令:"
 echo "  看 log:     tail -f $PROJECT_DIR/monitor.log"
 echo "  停止服務:   launchctl unload $PLIST_PATH"
 echo "  重啟服務:   launchctl unload $PLIST_PATH && launchctl load $PLIST_PATH"
-echo "  改網址:     nano $PROJECT_DIR/config.json"
+echo "  改網址:     直接改 Google Sheet，不用重啟！"
+echo "  改設定:     nano $PROJECT_DIR/config.json"
 echo "  重新登入:   python3 $PROJECT_DIR/monitor.py login"
 echo ""

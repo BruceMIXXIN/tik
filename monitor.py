@@ -2,6 +2,7 @@
 """
 拓元售票 (tixCraft) 票券監控系統
 使用 Playwright 瀏覽器抓取頁面，有票時透過 Google Chat Webhook 通知
+支援從 Google Sheet 讀取多個監控網址，可在 Sheet 上一鍵開關
 
 用法:
   本機持續監控:  python3 monitor.py
@@ -11,6 +12,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import time
@@ -39,17 +42,69 @@ log = logging.getLogger(__name__)
 # ── 載入設定（支援環境變數覆蓋，給 GitHub Actions 用）─────
 
 
-def load_config() -> dict:
+def load_config():
     # CI 模式：純用環境變數，不需要 config.json
-    if os.environ.get("TARGET_URL") and os.environ.get("GOOGLE_CHAT_WEBHOOK"):
+    if os.environ.get("GOOGLE_CHAT_WEBHOOK"):
         return {
-            "target_url": os.environ["TARGET_URL"],
+            "google_sheet_id": os.environ.get("GOOGLE_SHEET_ID", ""),
+            "target_url": os.environ.get("TARGET_URL", ""),
             "google_chat_webhook": os.environ["GOOGLE_CHAT_WEBHOOK"],
             "check_interval_seconds": 30,
         }
     # 本機模式：讀 config.json
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+# ── Google Sheet 讀取 ─────────────────────────────────
+
+
+def fetch_urls_from_sheet(sheet_id):
+    """從 Google Sheet 讀取啟用的網址清單"""
+    csv_url = (
+        "https://docs.google.com/spreadsheets/d/"
+        "{}/export?format=csv&gid=0".format(sheet_id)
+    )
+    try:
+        resp = requests.get(csv_url, timeout=15)
+        resp.raise_for_status()
+        resp.encoding = "utf-8"
+        reader = csv.reader(io.StringIO(resp.text))
+        header = next(reader, None)
+        if not header:
+            log.warning("Google Sheet 是空的")
+            return []
+
+        urls = []
+        for row in reader:
+            if len(row) < 2:
+                continue
+            url = row[0].strip()
+            enabled = row[1].strip().lower()
+            if url and enabled in ("true", "yes", "y", "1", "是", "開啟", "o", "on"):
+                urls.append(url)
+
+        log.info("從 Google Sheet 讀到 %d 個啟用的網址", len(urls))
+        return urls
+    except requests.RequestException as e:
+        log.error("無法讀取 Google Sheet: %s", e)
+        return []
+
+
+def get_target_urls(config):
+    """取得要監控的網址清單（優先 Google Sheet，fallback 到 config）"""
+    sheet_id = config.get("google_sheet_id", "")
+    if sheet_id:
+        urls = fetch_urls_from_sheet(sheet_id)
+        if urls:
+            return urls
+        log.warning("Google Sheet 沒有啟用的網址，嘗試 fallback 到 config")
+
+    # fallback: 從 config.json 的 target_url
+    target = config.get("target_url", "")
+    if target:
+        return [target]
+    return []
 
 
 # ── Playwright 瀏覽器 ───────────────────────────────────
@@ -168,8 +223,8 @@ def send_google_chat(webhook_url: str, message: str) -> bool:
 # ── 核心檢查 ──────────────────────────────────────────────
 
 
-def check_once(context: BrowserContext, config: dict) -> tuple[bool, str]:
-    url = config["target_url"]
+def check_single_url(context, url):
+    """檢查單一網址，回傳 (has_ticket, message)"""
     html = fetch_page_with_playwright(context, url)
     if html is None:
         return False, "無法取得頁面"
@@ -189,13 +244,34 @@ def check_once(context: BrowserContext, config: dict) -> tuple[bool, str]:
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if available:
-        lines = [f"🎫 *拓元有票通知!* ({now})", f"🔗 {url}", ""]
+        lines = ["\U0001f3ab *拓元有票通知!* ({})".format(now), "\U0001f517 {}".format(url), ""]
         for a in available:
-            lines.append(f"  • {a['name']}: {a['status']}")
+            lines.append("  \u2022 {}: {}".format(a["name"], a["status"]))
         return True, "\n".join(lines)
     else:
-        summary = ", ".join(f"{a['name']}:{a['status']}" for a in areas)
-        return False, f"[{now}] 目前無票 — {summary}"
+        summary = ", ".join("{}:{}".format(a["name"], a["status"]) for a in areas)
+        return False, "[{}] {} \u2014 {}".format(now, url, summary)
+
+
+def check_all_urls(context, config):
+    """檢查所有啟用的網址，回傳 (any_ticket, messages)"""
+    urls = get_target_urls(config)
+    if not urls:
+        return False, ["沒有要監控的網址（Google Sheet 為空或 config 未設定）"]
+
+    any_ticket = False
+    ticket_msgs = []
+    no_ticket_msgs = []
+
+    for url in urls:
+        has_ticket, msg = check_single_url(context, url)
+        if has_ticket:
+            any_ticket = True
+            ticket_msgs.append(msg)
+        else:
+            no_ticket_msgs.append(msg)
+
+    return any_ticket, ticket_msgs, no_ticket_msgs
 
 
 # ── CI 單次檢查模式（GitHub Actions 用）─────────────────────
@@ -206,7 +282,8 @@ def run_ci_check():
     config = load_config()
     webhook = config["google_chat_webhook"]
 
-    log.info("CI 單次檢查: %s", config["target_url"])
+    urls = get_target_urls(config)
+    log.info("CI 單次檢查: %d 個網址", len(urls))
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(
@@ -225,18 +302,19 @@ def run_ci_check():
             ),
             viewport={"width": 1280, "height": 800},
         )
-        # 隱藏 webdriver 特徵
         context.add_init_script("""
             Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
         """)
 
-        has_ticket, msg = check_once(context, config)
+        any_ticket, ticket_msgs, no_ticket_msgs = check_all_urls(context, config)
 
-        if has_ticket:
-            log.info("偵測到有票！發送通知...")
-            send_google_chat(webhook, msg)
+        if any_ticket:
+            for msg in ticket_msgs:
+                log.info("偵測到有票！發送通知...")
+                send_google_chat(webhook, msg)
         else:
-            log.info(msg)
+            for msg in no_ticket_msgs:
+                log.info(msg)
 
         context.close()
         browser.close()
@@ -254,42 +332,66 @@ def run_local():
         log.error("請先在 config.json 填入 Google Chat Webhook URL")
         sys.exit(1)
 
+    urls = get_target_urls(config)
+    sheet_id = config.get("google_sheet_id", "")
+    source = "Google Sheet" if sheet_id else "config.json"
+
     log.info("=== 拓元票券監控啟動 ===")
-    log.info("目標: %s", config["target_url"])
+    log.info("來源: %s", source)
+    log.info("監控中: %d 個網址", len(urls))
+    for u in urls:
+        log.info("  -> %s", u)
     log.info("檢查間隔: %d 秒", interval)
     log.info("按 Ctrl+C 停止")
 
-    send_google_chat(webhook, f"🟢 拓元監控已啟動\n目標: {config['target_url']}\n間隔: {interval} 秒")
+    startup_msg = "\U0001f7e2 拓元監控已啟動\n來源: {}\n監控: {} 個網址\n間隔: {} 秒".format(
+        source, len(urls), interval
+    )
+    send_google_chat(webhook, startup_msg)
 
     with sync_playwright() as pw:
         if not USER_DATA_DIR.exists():
             login_flow(pw)
 
         context = create_browser_context(pw, headless=True)
-        last_notified = False
+        last_notified_urls = set()
 
         try:
             while True:
+                # 每次迴圈重讀設定 + Google Sheet，這樣改 Sheet 不用重啟
                 config = load_config()
                 webhook = config["google_chat_webhook"]
 
-                has_ticket, msg = check_once(context, config)
+                any_ticket, ticket_msgs, no_ticket_msgs = check_all_urls(context, config)
 
-                if has_ticket:
-                    log.info("偵測到有票！")
-                    send_google_chat(webhook, msg)
-                    last_notified = True
-                else:
+                # 有票的發通知
+                current_ticket_urls = set()
+                if any_ticket:
+                    for msg in ticket_msgs:
+                        log.info("偵測到有票！")
+                        send_google_chat(webhook, msg)
+                        # 從訊息中提取 URL
+                        for line in msg.split("\n"):
+                            if "tixcraft.com" in line:
+                                current_ticket_urls.add(line.strip().replace("\U0001f517 ", ""))
+
+                # 之前有票但現在沒了的，發一次通知
+                disappeared = last_notified_urls - current_ticket_urls
+                if disappeared:
+                    now_str = datetime.now().strftime("%H:%M:%S")
+                    send_google_chat(webhook, "\u26aa 票券已無 \u2014 {}".format(now_str))
+
+                last_notified_urls = current_ticket_urls
+
+                # log 無票的
+                for msg in no_ticket_msgs:
                     log.info(msg)
-                    if last_notified:
-                        send_google_chat(webhook, f"⚪ 票券已無 — {datetime.now().strftime('%H:%M:%S')}")
-                        last_notified = False
 
                 time.sleep(interval)
 
         except KeyboardInterrupt:
             log.info("\n=== 監控已停止 ===")
-            send_google_chat(webhook, "🔴 拓元監控已停止")
+            send_google_chat(webhook, "\U0001f534 拓元監控已停止")
         finally:
             context.close()
 
