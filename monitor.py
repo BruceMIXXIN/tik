@@ -387,7 +387,6 @@ def run_local():
                 # 每次迴圈重讀設定 + Google Sheet，這樣改 Sheet 不用重啟
                 config = load_config()
                 webhook = config["google_chat_webhook"]
-                targets = [t for t in config.get("targets", []) if t.get("enabled", True)]
 
                 any_ticket, ticket_msgs, no_ticket_msgs = check_all_urls(context, config)
 
