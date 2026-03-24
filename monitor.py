@@ -43,13 +43,38 @@ def load_config() -> dict:
     # CI 模式：純用環境變數，不需要 config.json
     if os.environ.get("TARGET_URL") and os.environ.get("GOOGLE_CHAT_WEBHOOK"):
         return {
-            "target_url": os.environ["TARGET_URL"],
             "google_chat_webhook": os.environ["GOOGLE_CHAT_WEBHOOK"],
             "check_interval_seconds": 30,
+            "targets": [
+                {
+                    "url": os.environ["TARGET_URL"],
+                    "name": "CI Target",
+                    "enabled": True,
+                }
+            ],
         }
     # 本機模式：讀 config.json
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+        config = json.load(f)
+
+    # 向下相容：舊格式 target_url -> 新格式 targets
+    if "target_url" in config and "targets" not in config:
+        config["targets"] = [
+            {
+                "url": config.pop("target_url"),
+                "name": "預設目標",
+                "enabled": True,
+            }
+        ]
+        save_config(config)
+
+    return config
+
+
+def save_config(config: dict) -> None:
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+        f.write("\n")
 
 
 # ── Playwright 瀏覽器 ───────────────────────────────────
@@ -168,15 +193,16 @@ def send_google_chat(webhook_url: str, message: str) -> bool:
 # ── 核心檢查 ──────────────────────────────────────────────
 
 
-def check_once(context: BrowserContext, config: dict) -> tuple[bool, str]:
-    url = config["target_url"]
+def check_once(context: BrowserContext, target: dict, webhook: str | None = None) -> tuple[bool, str]:
+    url = target["url"]
+    name = target.get("name", url)
     html = fetch_page_with_playwright(context, url)
     if html is None:
-        return False, "無法取得頁面"
+        return False, f"[{name}] 無法取得頁面"
 
     areas = parse_ticket_areas(html)
     if not areas:
-        return False, "無法解析頁面內容"
+        return False, f"[{name}] 無法解析頁面內容"
 
     no_ticket_keywords = ["無票", "已售完", "sold out", "暫無", "目前無可售", "被擋", "驗證頁面"]
     available = []
@@ -189,13 +215,13 @@ def check_once(context: BrowserContext, config: dict) -> tuple[bool, str]:
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if available:
-        lines = [f"🎫 *拓元有票通知!* ({now})", f"🔗 {url}", ""]
+        lines = [f"🎫 *拓元有票通知!* [{name}] ({now})", f"🔗 {url}", ""]
         for a in available:
             lines.append(f"  • {a['name']}: {a['status']}")
         return True, "\n".join(lines)
     else:
         summary = ", ".join(f"{a['name']}:{a['status']}" for a in areas)
-        return False, f"[{now}] 目前無票 — {summary}"
+        return False, f"[{now}] [{name}] 目前無票 — {summary}"
 
 
 # ── CI 單次檢查模式（GitHub Actions 用）─────────────────────
@@ -205,8 +231,6 @@ def run_ci_check():
     """單次檢查，適合 cron 排程"""
     config = load_config()
     webhook = config["google_chat_webhook"]
-
-    log.info("CI 單次檢查: %s", config["target_url"])
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(
@@ -225,18 +249,20 @@ def run_ci_check():
             ),
             viewport={"width": 1280, "height": 800},
         )
-        # 隱藏 webdriver 特徵
         context.add_init_script("""
             Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
         """)
 
-        has_ticket, msg = check_once(context, config)
-
-        if has_ticket:
-            log.info("偵測到有票！發送通知...")
-            send_google_chat(webhook, msg)
-        else:
-            log.info(msg)
+        for target in config["targets"]:
+            if not target.get("enabled", True):
+                continue
+            log.info("CI 檢查: %s (%s)", target.get("name", ""), target["url"])
+            has_ticket, msg = check_once(context, target)
+            if has_ticket:
+                log.info("偵測到有票！發送通知...")
+                send_google_chat(webhook, msg)
+            else:
+                log.info(msg)
 
         context.close()
         browser.close()
@@ -254,36 +280,46 @@ def run_local():
         log.error("請先在 config.json 填入 Google Chat Webhook URL")
         sys.exit(1)
 
+    targets = [t for t in config.get("targets", []) if t.get("enabled", True)]
+    if not targets:
+        log.error("沒有啟用的監控目標")
+        sys.exit(1)
+
     log.info("=== 拓元票券監控啟動 ===")
-    log.info("目標: %s", config["target_url"])
+    for t in targets:
+        log.info("目標: %s (%s)", t.get("name", ""), t["url"])
     log.info("檢查間隔: %d 秒", interval)
     log.info("按 Ctrl+C 停止")
 
-    send_google_chat(webhook, f"🟢 拓元監控已啟動\n目標: {config['target_url']}\n間隔: {interval} 秒")
+    target_names = ", ".join(t.get("name", t["url"]) for t in targets)
+    send_google_chat(webhook, f"🟢 拓元監控已啟動\n目標: {target_names}\n間隔: {interval} 秒")
 
     with sync_playwright() as pw:
         if not USER_DATA_DIR.exists():
             login_flow(pw)
 
         context = create_browser_context(pw, headless=True)
-        last_notified = False
+        last_notified = {}
 
         try:
             while True:
                 config = load_config()
                 webhook = config["google_chat_webhook"]
+                targets = [t for t in config.get("targets", []) if t.get("enabled", True)]
 
-                has_ticket, msg = check_once(context, config)
+                for target in targets:
+                    url = target["url"]
+                    has_ticket, msg = check_once(context, target)
 
-                if has_ticket:
-                    log.info("偵測到有票！")
-                    send_google_chat(webhook, msg)
-                    last_notified = True
-                else:
-                    log.info(msg)
-                    if last_notified:
-                        send_google_chat(webhook, f"⚪ 票券已無 — {datetime.now().strftime('%H:%M:%S')}")
-                        last_notified = False
+                    if has_ticket:
+                        log.info("偵測到有票！[%s]", target.get("name", ""))
+                        send_google_chat(webhook, msg)
+                        last_notified[url] = True
+                    else:
+                        log.info(msg)
+                        if last_notified.get(url):
+                            send_google_chat(webhook, f"⚪ [{target.get('name', '')}] 票券已無 — {datetime.now().strftime('%H:%M:%S')}")
+                            last_notified[url] = False
 
                 time.sleep(interval)
 
