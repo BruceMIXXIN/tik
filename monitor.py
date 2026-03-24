@@ -40,14 +40,16 @@ log = logging.getLogger(__name__)
 
 
 def load_config() -> dict:
+    # CI 模式：純用環境變數，不需要 config.json
+    if os.environ.get("TARGET_URL") and os.environ.get("GOOGLE_CHAT_WEBHOOK"):
+        return {
+            "target_url": os.environ["TARGET_URL"],
+            "google_chat_webhook": os.environ["GOOGLE_CHAT_WEBHOOK"],
+            "check_interval_seconds": 30,
+        }
+    # 本機模式：讀 config.json
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        config = json.load(f)
-    # 環境變數優先（GitHub Actions Secrets）
-    if os.environ.get("TARGET_URL"):
-        config["target_url"] = os.environ["TARGET_URL"]
-    if os.environ.get("GOOGLE_CHAT_WEBHOOK"):
-        config["google_chat_webhook"] = os.environ["GOOGLE_CHAT_WEBHOOK"]
-    return config
+        return json.load(f)
 
 
 # ── Playwright 瀏覽器 ───────────────────────────────────
