@@ -29,8 +29,69 @@
       margin-bottom: 1.5rem;
     }
 
-    /* Sheet 設定 */
-    .sheet-config {
+    /* 設定區 */
+    .config-section {
+      background: #fff;
+      border: 1px solid #e7e5e4;
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .config-section .row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .config-section .row:last-child { margin-bottom: 0; }
+    .config-section label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #57534e;
+      white-space: nowrap;
+      min-width: 90px;
+    }
+    .config-section input {
+      flex: 1;
+      padding: 0.45rem 0.65rem;
+      border: 1px solid #d6d3d1;
+      border-radius: 8px;
+      background: #fafaf9;
+      color: #1c1917;
+      font-size: 0.82rem;
+    }
+    .config-section input:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .btn-save {
+      padding: 0.45rem 0.85rem;
+      background: #e7e5e4;
+      color: #57534e;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .btn-save:hover { background: #d6d3d1; }
+    .config-links {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+    .config-links a {
+      font-size: 0.75rem;
+      color: #6366f1;
+      text-decoration: none;
+    }
+    .config-links a:hover { text-decoration: underline; }
+
+    /* 新增表單 */
+    .add-form {
       background: #fff;
       border: 1px solid #e7e5e4;
       border-radius: 12px;
@@ -38,33 +99,27 @@
       margin-bottom: 2rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    .sheet-config .row {
+    .add-form .row {
       display: flex;
       gap: 0.5rem;
-      align-items: center;
     }
-    .sheet-config label {
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: #57534e;
-      white-space: nowrap;
-    }
-    .sheet-config input {
+    .add-form input {
       flex: 1;
-      padding: 0.5rem 0.75rem;
+      padding: 0.55rem 0.75rem;
       border: 1px solid #d6d3d1;
       border-radius: 8px;
       background: #fafaf9;
       color: #1c1917;
       font-size: 0.85rem;
     }
-    .sheet-config input:focus {
+    .add-form input:focus {
       outline: none;
       border-color: #6366f1;
       box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
     }
-    .btn-reload {
-      padding: 0.5rem 1rem;
+    .add-form input::placeholder { color: #a8a29e; }
+    .btn-add {
+      padding: 0.55rem 1.25rem;
       background: #6366f1;
       color: #fff;
       border: none;
@@ -74,16 +129,8 @@
       font-weight: 500;
       white-space: nowrap;
     }
-    .btn-reload:hover { background: #4f46e5; }
-    .btn-reload:disabled { opacity: 0.5; cursor: not-allowed; }
-    .sheet-link {
-      display: inline-block;
-      margin-top: 0.5rem;
-      font-size: 0.78rem;
-      color: #6366f1;
-      text-decoration: none;
-    }
-    .sheet-link:hover { text-decoration: underline; }
+    .btn-add:hover { background: #4f46e5; }
+    .btn-add:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* 區段標題 */
     .section-header {
@@ -99,6 +146,11 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+    .section-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
     .badge {
       font-size: 0.75rem;
       background: #e7e5e4;
@@ -106,14 +158,18 @@
       padding: 0.15rem 0.5rem;
       border-radius: 999px;
     }
-    .badge.active {
-      background: #dcfce7;
-      color: #15803d;
+    .badge.active { background: #dcfce7; color: #15803d; }
+    .badge.off { background: #fee2e2; color: #dc2626; }
+    .btn-refresh {
+      background: none;
+      border: 1px solid #d6d3d1;
+      color: #57534e;
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
     }
-    .badge.off {
-      background: #fee2e2;
-      color: #dc2626;
-    }
+    .btn-refresh:hover { background: #fafaf9; }
 
     /* 目標列表 */
     .target-list {
@@ -136,13 +192,9 @@
       border-color: #d6d3d1;
       box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     }
-    .target-card.disabled {
-      opacity: 0.5;
-      background: #fafaf9;
-    }
+    .target-card.disabled { opacity: 0.5; background: #fafaf9; }
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: 8px; height: 8px;
       border-radius: 50%;
       background: #22c55e;
       flex-shrink: 0;
@@ -158,34 +210,34 @@
     }
     .target-url a { color: #6366f1; text-decoration: none; }
     .target-url a:hover { text-decoration: underline; }
-    .target-status {
-      font-size: 0.75rem;
-      color: #22c55e;
-      font-weight: 500;
-    }
+    .target-status { font-size: 0.75rem; color: #22c55e; font-weight: 500; }
     .target-card.disabled .target-status { color: #a8a29e; }
+    .btn-del {
+      background: none;
+      border: 1px solid transparent;
+      color: #a8a29e;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .btn-del:hover { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+    .btn-del:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .empty {
+    .empty, .loading {
       text-align: center;
       color: #a8a29e;
-      padding: 3rem 1rem;
+      padding: 2.5rem 1rem;
       font-size: 0.9rem;
     }
-
-    .loading {
-      text-align: center;
-      color: #78716c;
-      padding: 2rem 1rem;
-      font-size: 0.9rem;
-    }
-
+    .loading { color: #78716c; }
     .last-updated {
       text-align: right;
       font-size: 0.75rem;
       color: #a8a29e;
       margin-top: 0.75rem;
     }
-
     .toast {
       position: fixed;
       bottom: 2rem;
@@ -201,33 +253,53 @@
       z-index: 100;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast.success { background: #16a34a; }
+    .hint {
+      font-size: 0.75rem;
+      color: #a8a29e;
+      margin-top: 0.4rem;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1><span>🎫</span> 拓元票券監控</h1>
-    <p class="subtitle">從 Google Sheet 讀取監控網址，即時顯示狀態</p>
+    <p class="subtitle">從 Google Sheet 讀取監控網址，可直接新增/刪除</p>
 
-    <div class="sheet-config">
+    <div class="config-section">
       <div class="row">
         <label>Sheet ID</label>
         <input type="text" id="inp-sheet" placeholder="Google Sheet ID">
-        <button class="btn-reload" id="btn-reload" onclick="fetchSheet()">載入</button>
       </div>
-      <a class="sheet-link" id="sheet-link" href="#" target="_blank" style="display:none">在 Google Sheet 中編輯</a>
+      <div class="row">
+        <label>Script URL</label>
+        <input type="text" id="inp-script" placeholder="Google Apps Script Web App 網址（選填）">
+        <button class="btn-save" onclick="saveConfig()">儲存</button>
+      </div>
+      <div class="config-links">
+        <a id="sheet-link" href="#" target="_blank" style="display:none">開啟 Google Sheet</a>
+        <a href="https://github.com/BruceMIXXIN/tik#google-apps-script-%E9%83%A8%E7%BD%B2" target="_blank">Apps Script 部署教學</a>
+      </div>
+      <p class="hint">填入 Script URL 後才能在前端新增/刪除網址，否則請直接編輯 Google Sheet</p>
+    </div>
+
+    <div class="add-form" id="add-form">
+      <div class="row">
+        <input type="text" id="inp-url" placeholder="拓元活動網址 https://tixcraft.com/ticket/area/...">
+        <button class="btn-add" id="btn-add" onclick="addTarget()">新增</button>
+      </div>
     </div>
 
     <div class="section-header">
       <span class="section-title">監控中的網址</span>
-      <span class="badge" id="count-badge">0 個</span>
+      <div class="section-actions">
+        <span class="badge" id="count-badge">0 個</span>
+        <button class="btn-refresh" onclick="fetchSheet()">重新整理</button>
+      </div>
     </div>
     <div class="target-list" id="list">
-      <div class="empty">請輸入 Google Sheet ID 並按「載入」</div>
+      <div class="empty">請輸入 Google Sheet ID 並按「儲存」</div>
     </div>
     <div class="last-updated" id="last-updated"></div>
   </div>
@@ -236,30 +308,48 @@
 
   <script>
     const SHEET_KEY = 'tik_sheet_id';
+    const SCRIPT_KEY = 'tik_script_url';
 
     function init() {
-      const saved = localStorage.getItem(SHEET_KEY) || '';
-      document.getElementById('inp-sheet').value = saved;
-      if (saved) fetchSheet();
+      const sheetId = localStorage.getItem(SHEET_KEY) || '';
+      const scriptUrl = localStorage.getItem(SCRIPT_KEY) || '';
+      document.getElementById('inp-sheet').value = sheetId;
+      document.getElementById('inp-script').value = scriptUrl;
+      updateLinks();
+      if (sheetId) fetchSheet();
+    }
+
+    function saveConfig() {
+      const sheetId = document.getElementById('inp-sheet').value.trim();
+      const scriptUrl = document.getElementById('inp-script').value.trim();
+      if (!sheetId) { showToast('請輸入 Sheet ID', 'error'); return; }
+      localStorage.setItem(SHEET_KEY, sheetId);
+      localStorage.setItem(SCRIPT_KEY, scriptUrl);
+      updateLinks();
+      showToast('已儲存', 'success');
+      fetchSheet();
+    }
+
+    function updateLinks() {
+      const sheetId = document.getElementById('inp-sheet').value.trim();
+      const link = document.getElementById('sheet-link');
+      if (sheetId) {
+        link.href = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(sheetId);
+        link.style.display = 'inline';
+      } else {
+        link.style.display = 'none';
+      }
+    }
+
+    function getScriptUrl() {
+      return localStorage.getItem(SCRIPT_KEY) || '';
     }
 
     async function fetchSheet() {
       const sheetId = document.getElementById('inp-sheet').value.trim();
-      if (!sheetId) {
-        showToast('請輸入 Sheet ID', 'error');
-        return;
-      }
+      if (!sheetId) return;
 
-      localStorage.setItem(SHEET_KEY, sheetId);
-
-      // 更新 Sheet 連結
-      const link = document.getElementById('sheet-link');
-      link.href = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(sheetId);
-      link.style.display = 'inline-block';
-
-      const btn = document.getElementById('btn-reload');
       const list = document.getElementById('list');
-      btn.disabled = true;
       list.innerHTML = '<div class="loading">載入中...</div>';
 
       try {
@@ -270,12 +360,10 @@
         const rows = parseCSV(text);
         render(rows);
         document.getElementById('last-updated').textContent = '最後更新: ' + new Date().toLocaleTimeString('zh-TW');
-        showToast('已載入 ' + rows.length + ' 筆', 'success');
       } catch (e) {
         list.innerHTML = '<div class="empty">讀取失敗: ' + esc(e.message) + '</div>';
         showToast(e.message, 'error');
       }
-      btn.disabled = false;
     }
 
     function parseCSV(text) {
@@ -288,7 +376,7 @@
         const url = cols[0].trim().replace(/^"|"$/g, '');
         const enabled = cols[1].trim().replace(/^"|"$/g, '').toLowerCase();
         if (!url) continue;
-        const isOn = ['true', 'yes', 'y', '1', '是', '開啟', 'o', 'on'].includes(enabled);
+        const isOn = ['true','yes','y','1','是','開啟','o','on'].includes(enabled);
         rows.push({ url, enabled: isOn });
       }
       return rows;
@@ -298,6 +386,7 @@
       const list = document.getElementById('list');
       const badge = document.getElementById('count-badge');
       const activeCount = rows.filter(r => r.enabled).length;
+      const hasScript = !!getScriptUrl();
 
       badge.textContent = activeCount + ' / ' + rows.length + ' 個啟用';
       badge.className = activeCount > 0 ? 'badge active' : 'badge off';
@@ -314,8 +403,63 @@
             <div class="target-url"><a href="${esc(r.url)}" target="_blank">${esc(r.url)}</a></div>
             <div class="target-status">${r.enabled ? '監控中' : '已停用'}</div>
           </div>
+          ${hasScript ? `<button class="btn-del" onclick="delTarget('${esc(r.url)}', this)">刪除</button>` : ''}
         </div>
       `).join('');
+    }
+
+    async function addTarget() {
+      const scriptUrl = getScriptUrl();
+      if (!scriptUrl) {
+        showToast('請先設定 Apps Script URL', 'error');
+        return;
+      }
+
+      const urlInput = document.getElementById('inp-url');
+      const url = urlInput.value.trim();
+      if (!url) return;
+      if (!url.startsWith('https://tixcraft.com/')) {
+        showToast('僅支援 tixcraft.com 網址', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-add');
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(scriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'add', url: url, enabled: '是' })
+        });
+        urlInput.value = '';
+        showToast('已新增，重新載入中...', 'success');
+        setTimeout(fetchSheet, 1500);
+      } catch (e) {
+        showToast('新增失敗: ' + e.message, 'error');
+      }
+      btn.disabled = false;
+    }
+
+    async function delTarget(url, btnEl) {
+      const scriptUrl = getScriptUrl();
+      if (!scriptUrl) return;
+
+      btnEl.disabled = true;
+      try {
+        await fetch(scriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'delete', url: url })
+        });
+        showToast('已刪除，重新載入中...', 'success');
+        setTimeout(fetchSheet, 1500);
+      } catch (e) {
+        showToast('刪除失敗: ' + e.message, 'error');
+        btnEl.disabled = false;
+      }
     }
 
     function esc(s) {
@@ -332,7 +476,13 @@
     }
 
     document.getElementById('inp-sheet').addEventListener('keydown', e => {
-      if (e.key === 'Enter') fetchSheet();
+      if (e.key === 'Enter') document.getElementById('inp-script').focus();
+    });
+    document.getElementById('inp-script').addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveConfig();
+    });
+    document.getElementById('inp-url').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addTarget();
     });
 
     init();
