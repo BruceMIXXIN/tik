@@ -29,50 +29,61 @@
       margin-bottom: 1.5rem;
     }
 
-    /* 新增表單 */
-    .add-form {
+    /* Sheet 設定 */
+    .sheet-config {
       background: #fff;
       border: 1px solid #e7e5e4;
       border-radius: 12px;
-      padding: 1.25rem;
+      padding: 1rem 1.25rem;
       margin-bottom: 2rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    .add-form .row {
+    .sheet-config .row {
       display: flex;
       gap: 0.5rem;
+      align-items: center;
     }
-    .add-form input {
+    .sheet-config label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #57534e;
+      white-space: nowrap;
+    }
+    .sheet-config input {
       flex: 1;
-      padding: 0.6rem 0.75rem;
+      padding: 0.5rem 0.75rem;
       border: 1px solid #d6d3d1;
       border-radius: 8px;
       background: #fafaf9;
       color: #1c1917;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
-    .add-form input:focus {
+    .sheet-config input:focus {
       outline: none;
       border-color: #6366f1;
       box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
     }
-    .add-form input::placeholder { color: #a8a29e; }
-    .btn-add {
-      padding: 0.6rem 1.25rem;
+    .btn-reload {
+      padding: 0.5rem 1rem;
       background: #6366f1;
       color: #fff;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 500;
       white-space: nowrap;
     }
-    .btn-add:hover { background: #4f46e5; }
-    .btn-add:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-reload:hover { background: #4f46e5; }
+    .btn-reload:disabled { opacity: 0.5; cursor: not-allowed; }
+    .sheet-link {
+      display: inline-block;
+      margin-top: 0.5rem;
+      font-size: 0.78rem;
+      color: #6366f1;
+      text-decoration: none;
+    }
+    .sheet-link:hover { text-decoration: underline; }
 
     /* 區段標題 */
     .section-header {
@@ -99,6 +110,10 @@
       background: #dcfce7;
       color: #15803d;
     }
+    .badge.off {
+      background: #fee2e2;
+      color: #dc2626;
+    }
 
     /* 目標列表 */
     .target-list {
@@ -121,6 +136,10 @@
       border-color: #d6d3d1;
       box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     }
+    .target-card.disabled {
+      opacity: 0.5;
+      background: #fafaf9;
+    }
     .status-dot {
       width: 8px;
       height: 8px;
@@ -128,38 +147,23 @@
       background: #22c55e;
       flex-shrink: 0;
     }
+    .target-card.disabled .status-dot { background: #d6d3d1; }
     .target-info { flex: 1; min-width: 0; }
-    .target-name {
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: #1c1917;
-    }
     .target-url {
-      font-size: 0.78rem;
-      color: #a8a29e;
+      font-size: 0.85rem;
+      color: #1c1917;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .target-url a { color: #6366f1; text-decoration: none; }
     .target-url a:hover { text-decoration: underline; }
-
-    /* 刪除按鈕 */
-    .btn-del {
-      background: none;
-      border: 1px solid transparent;
-      color: #a8a29e;
-      cursor: pointer;
-      font-size: 0.8rem;
-      padding: 0.3rem 0.6rem;
-      border-radius: 6px;
-      transition: all 0.15s;
+    .target-status {
+      font-size: 0.75rem;
+      color: #22c55e;
+      font-weight: 500;
     }
-    .btn-del:hover {
-      color: #dc2626;
-      background: #fef2f2;
-      border-color: #fecaca;
-    }
+    .target-card.disabled .target-status { color: #a8a29e; }
 
     .empty {
       text-align: center;
@@ -168,28 +172,18 @@
       font-size: 0.9rem;
     }
 
-    /* 匯出區 */
-    .export-section {
-      margin-top: 2rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid #e7e5e4;
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+    .loading {
+      text-align: center;
+      color: #78716c;
+      padding: 2rem 1rem;
+      font-size: 0.9rem;
     }
-    .btn-export {
-      padding: 0.5rem 1rem;
-      background: #fff;
-      color: #57534e;
-      border: 1px solid #d6d3d1;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      transition: all 0.15s;
-    }
-    .btn-export:hover {
-      background: #fafaf9;
-      border-color: #a8a29e;
+
+    .last-updated {
+      text-align: right;
+      font-size: 0.75rem;
+      color: #a8a29e;
+      margin-top: 0.75rem;
     }
 
     .toast {
@@ -217,143 +211,111 @@
 <body>
   <div class="container">
     <h1><span>🎫</span> 拓元票券監控</h1>
-    <p class="subtitle">新增拓元活動網址，即時監控票券狀態</p>
+    <p class="subtitle">從 Google Sheet 讀取監控網址，即時顯示狀態</p>
 
-    <div class="add-form">
+    <div class="sheet-config">
       <div class="row">
-        <input type="text" id="inp-url" placeholder="拓元活動網址 https://tixcraft.com/ticket/area/...">
+        <label>Sheet ID</label>
+        <input type="text" id="inp-sheet" placeholder="Google Sheet ID">
+        <button class="btn-reload" id="btn-reload" onclick="fetchSheet()">載入</button>
       </div>
-      <div class="row">
-        <input type="text" id="inp-name" placeholder="名稱（選填，如：五月天演唱會）">
-        <button class="btn-add" id="btn-add" onclick="addTarget()">新增</button>
-      </div>
+      <a class="sheet-link" id="sheet-link" href="#" target="_blank" style="display:none">在 Google Sheet 中編輯</a>
     </div>
 
     <div class="section-header">
       <span class="section-title">監控中的網址</span>
-      <span class="badge active" id="count-badge">0 個</span>
+      <span class="badge" id="count-badge">0 個</span>
     </div>
-    <div class="target-list" id="list"></div>
-
-    <div class="export-section">
-      <button class="btn-export" onclick="exportConfig()">匯出 config.json</button>
-      <button class="btn-export" onclick="importConfig()">匯入 config.json</button>
-      <input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
+    <div class="target-list" id="list">
+      <div class="empty">請輸入 Google Sheet ID 並按「載入」</div>
     </div>
+    <div class="last-updated" id="last-updated"></div>
   </div>
 
   <div class="toast" id="toast"></div>
 
   <script>
-    const STORAGE_KEY = 'tik_targets';
+    const SHEET_KEY = 'tik_sheet_id';
 
-    function getTargets() {
+    function init() {
+      const saved = localStorage.getItem(SHEET_KEY) || '';
+      document.getElementById('inp-sheet').value = saved;
+      if (saved) fetchSheet();
+    }
+
+    async function fetchSheet() {
+      const sheetId = document.getElementById('inp-sheet').value.trim();
+      if (!sheetId) {
+        showToast('請輸入 Sheet ID', 'error');
+        return;
+      }
+
+      localStorage.setItem(SHEET_KEY, sheetId);
+
+      // 更新 Sheet 連結
+      const link = document.getElementById('sheet-link');
+      link.href = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(sheetId);
+      link.style.display = 'inline-block';
+
+      const btn = document.getElementById('btn-reload');
+      const list = document.getElementById('list');
+      btn.disabled = true;
+      list.innerHTML = '<div class="loading">載入中...</div>';
+
       try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-      } catch { return []; }
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(sheetId) + '/export?format=csv&gid=0';
+        const res = await fetch(csvUrl);
+        if (!res.ok) throw new Error('無法讀取 Sheet（確認已設為公開）');
+        const text = await res.text();
+        const rows = parseCSV(text);
+        render(rows);
+        document.getElementById('last-updated').textContent = '最後更新: ' + new Date().toLocaleTimeString('zh-TW');
+        showToast('已載入 ' + rows.length + ' 筆', 'success');
+      } catch (e) {
+        list.innerHTML = '<div class="empty">讀取失敗: ' + esc(e.message) + '</div>';
+        showToast(e.message, 'error');
+      }
+      btn.disabled = false;
     }
 
-    function saveTargets(targets) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(targets));
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      if (lines.length < 2) return [];
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        if (cols.length < 2) continue;
+        const url = cols[0].trim().replace(/^"|"$/g, '');
+        const enabled = cols[1].trim().replace(/^"|"$/g, '').toLowerCase();
+        if (!url) continue;
+        const isOn = ['true', 'yes', 'y', '1', '是', '開啟', 'o', 'on'].includes(enabled);
+        rows.push({ url, enabled: isOn });
+      }
+      return rows;
     }
 
-    function render() {
-      const targets = getTargets();
+    function render(rows) {
       const list = document.getElementById('list');
       const badge = document.getElementById('count-badge');
+      const activeCount = rows.filter(r => r.enabled).length;
 
-      badge.textContent = `${targets.length} 個`;
-      badge.className = targets.length > 0 ? 'badge active' : 'badge';
+      badge.textContent = activeCount + ' / ' + rows.length + ' 個啟用';
+      badge.className = activeCount > 0 ? 'badge active' : 'badge off';
 
-      if (targets.length === 0) {
-        list.innerHTML = '<div class="empty">尚未新增任何監控網址</div>';
+      if (rows.length === 0) {
+        list.innerHTML = '<div class="empty">Sheet 中沒有任何網址</div>';
         return;
       }
 
-      list.innerHTML = targets.map((t, i) => `
-        <div class="target-card">
+      list.innerHTML = rows.map(r => `
+        <div class="target-card ${r.enabled ? '' : 'disabled'}">
           <div class="status-dot"></div>
           <div class="target-info">
-            <div class="target-name">${esc(t.name)}</div>
-            <div class="target-url"><a href="${esc(t.url)}" target="_blank">${esc(t.url)}</a></div>
+            <div class="target-url"><a href="${esc(r.url)}" target="_blank">${esc(r.url)}</a></div>
+            <div class="target-status">${r.enabled ? '監控中' : '已停用'}</div>
           </div>
-          <button class="btn-del" onclick="del_(${i})">刪除</button>
         </div>
       `).join('');
-    }
-
-    function addTarget() {
-      const urlInput = document.getElementById('inp-url');
-      const nameInput = document.getElementById('inp-name');
-      const url = urlInput.value.trim();
-      const name = nameInput.value.trim();
-
-      if (!url) return;
-      if (!url.startsWith('https://tixcraft.com/')) {
-        showToast('僅支援 tixcraft.com 網址', 'error');
-        return;
-      }
-
-      const targets = getTargets();
-      if (targets.some(t => t.url === url)) {
-        showToast('此網址已存在', 'error');
-        return;
-      }
-
-      targets.push({ url, name: name || url.split('/').pop(), enabled: true });
-      saveTargets(targets);
-      urlInput.value = '';
-      nameInput.value = '';
-      showToast('已新增', 'success');
-      render();
-    }
-
-    function del_(idx) {
-      const targets = getTargets();
-      targets.splice(idx, 1);
-      saveTargets(targets);
-      showToast('已刪除', 'success');
-      render();
-    }
-
-    function exportConfig() {
-      const targets = getTargets();
-      const config = {
-        google_chat_webhook: "YOUR_WEBHOOK_URL_HERE",
-        check_interval_seconds: 30,
-        targets: targets
-      };
-      const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'config.json';
-      a.click();
-      URL.revokeObjectURL(a.href);
-      showToast('已匯出 config.json', 'success');
-    }
-
-    function importConfig() {
-      document.getElementById('file-import').click();
-    }
-
-    function handleImport(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(ev) {
-        try {
-          const config = JSON.parse(ev.target.result);
-          const targets = config.targets || [];
-          if (!Array.isArray(targets)) throw new Error();
-          saveTargets(targets);
-          showToast(`已匯入 ${targets.length} 個網址`, 'success');
-          render();
-        } catch {
-          showToast('JSON 格式錯誤', 'error');
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
     }
 
     function esc(s) {
@@ -369,14 +331,11 @@
       setTimeout(() => { t.className = 'toast'; }, 2500);
     }
 
-    document.getElementById('inp-url').addEventListener('keydown', e => {
-      if (e.key === 'Enter') document.getElementById('inp-name').focus();
-    });
-    document.getElementById('inp-name').addEventListener('keydown', e => {
-      if (e.key === 'Enter') addTarget();
+    document.getElementById('inp-sheet').addEventListener('keydown', e => {
+      if (e.key === 'Enter') fetchSheet();
     });
 
-    render();
+    init();
   </script>
 </body>
 </html>
