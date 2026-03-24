@@ -1,0 +1,7 @@
+{
+  "target_url": "https://tixcraft.com/ticket/area/YOUR_EVENT/YOUR_SESSION",
+  "google_chat_webhook": "YOUR_WEBHOOK_URL_HERE",
+  "check_interval_seconds": 30,
+  "notify_on_available": true,
+  "notify_keywords": []
+}

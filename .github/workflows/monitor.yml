@@ -1,0 +1,34 @@
+name: 拓元票券監控
+
+on:
+  schedule:
+    # 每 5 分鐘檢查一次（GitHub Actions 最短間隔）
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    # 手動觸發，可以輸入自訂 URL
+    inputs:
+      target_url:
+        description: '拓元票券頁面 URL'
+        required: false
+
+jobs:
+  check-tickets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 playwright
+          playwright install chromium
+
+      - name: Run ticket check
+        env:
+          GOOGLE_CHAT_WEBHOOK: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          TARGET_URL: ${{ inputs.target_url || secrets.TARGET_URL }}
+        run: python monitor.py check
