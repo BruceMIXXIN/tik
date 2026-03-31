@@ -39,6 +39,9 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+EXCLUDED_AREA_KEYWORDS = ["身障", "身心障礙", "輪椅", "愛心席", "disabled", "wheelchair"]
+
+
 # ── 載入設定（支援環境變數覆蓋，給 GitHub Actions 用）─────
 
 
@@ -231,6 +234,11 @@ def parse_ticket_areas(html: str) -> list[dict]:
     return areas
 
 
+def is_excluded_area(area_name: str) -> bool:
+    name = (area_name or "").lower()
+    return any(keyword.lower() in name for keyword in EXCLUDED_AREA_KEYWORDS)
+
+
 # ── Google Chat 通知 ──────────────────────────────────────
 
 
@@ -259,9 +267,14 @@ def check_single_url(context, url):
     if not areas:
         return False, f"[{name}] 無法解析頁面內容"
 
+    filtered_areas = [area for area in areas if not is_excluded_area(area.get("name", ""))]
+    if not filtered_areas:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return False, f"[{now}] {url} — 僅偵測到身障區，已排除"
+
     no_ticket_keywords = ["無票", "已售完", "sold out", "暫無", "目前無可售", "被擋", "驗證頁面"]
     available = []
-    for area in areas:
+    for area in filtered_areas:
         status_lower = area["status"].lower()
         is_sold_out = any(kw in status_lower for kw in no_ticket_keywords)
         if not is_sold_out and area["status"]:
@@ -275,7 +288,7 @@ def check_single_url(context, url):
             lines.append("  \u2022 {}: {}".format(a["name"], a["status"]))
         return True, "\n".join(lines)
     else:
-        summary = ", ".join("{}:{}".format(a["name"], a["status"]) for a in areas)
+        summary = ", ".join("{}:{}".format(a["name"], a["status"]) for a in filtered_areas)
         return False, "[{}] {} \u2014 {}".format(now, url, summary)
 
 
