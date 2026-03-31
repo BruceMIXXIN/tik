@@ -16,6 +16,7 @@ import csv
 import io
 import json
 import os
+import re
 import time
 import sys
 import logging
@@ -39,7 +40,16 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-EXCLUDED_AREA_KEYWORDS = ["身障", "身心障礙", "輪椅", "愛心席", "disabled", "wheelchair"]
+EXCLUDED_AREA_KEYWORDS = [
+    "身障",
+    "身心障礙",
+    "身障輪椅",
+    "輪椅",
+    "輪椅區",
+    "愛心席",
+    "disabled",
+    "wheelchair",
+]
 
 
 # ── 載入設定（支援環境變數覆蓋，給 GitHub Actions 用）─────
@@ -234,9 +244,14 @@ def parse_ticket_areas(html: str) -> list[dict]:
     return areas
 
 
-def is_excluded_area(area_name: str) -> bool:
-    name = (area_name or "").lower()
-    return any(keyword.lower() in name for keyword in EXCLUDED_AREA_KEYWORDS)
+def normalize_text(text: str) -> str:
+    # 移除空白與符號，降低全形/半形與分隔符差異造成的漏判
+    return re.sub(r"[\s\W_]+", "", (text or "").lower())
+
+
+def is_excluded_area(area: dict) -> bool:
+    combined = normalize_text("{} {}".format(area.get("name", ""), area.get("status", "")))
+    return any(normalize_text(keyword) in combined for keyword in EXCLUDED_AREA_KEYWORDS)
 
 
 # ── Google Chat 通知 ──────────────────────────────────────
@@ -261,13 +276,13 @@ def check_single_url(context, url):
     """檢查單一網址，回傳 (has_ticket, message)"""
     html = fetch_page_with_playwright(context, url)
     if html is None:
-        return False, f"[{name}] 無法取得頁面"
+        return False, f"[{url}] 無法取得頁面"
 
     areas = parse_ticket_areas(html)
     if not areas:
-        return False, f"[{name}] 無法解析頁面內容"
+        return False, f"[{url}] 無法解析頁面內容"
 
-    filtered_areas = [area for area in areas if not is_excluded_area(area.get("name", ""))]
+    filtered_areas = [area for area in areas if not is_excluded_area(area)]
     if not filtered_areas:
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return False, f"[{now}] {url} — 僅偵測到身障區，已排除"
